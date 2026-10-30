@@ -1,5 +1,5 @@
 #!/bin/sh
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # mergeupstream.sh - keep a fork's master branch in sync with upstream
 #
@@ -7,7 +7,7 @@
 #
 # Author:  Elia Pinto <gitter.spiros@gmail.com>
 # Version: 1.0
-# License: GNU General Public License v2.0 only (GPL-2.0-only)
+# License: GNU General Public License v3.0 or later (GPL-3.0-or-later)
 #
 # Description:
 #   Aligns the "master" branch of a personal fork ("origin") with the
