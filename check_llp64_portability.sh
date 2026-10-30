@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 # ==============================================================================
 # Script Name   : check_llp64_portability.sh
@@ -6,23 +7,13 @@
 #                 portability issues (e.g. 'unsigned long' truncation to 32-bit
 #                 on Win64) and summarises 64-to-32 bit truncations.
 # Author        : Elia Pinto <elia.pinto@cyberactors.it>
-# License       : GNU General Public License v3.0 (GPL-3.0-or-later)
+# License       : GNU General Public License v3.0 or later (GPL-3.0-or-later)
 # ==============================================================================
 #
 # Copyright (C) 2026 Elia Pinto
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <https://www.gnu.org/licenses/>.
+# The full license text is in the LICENSE file and at
+# <https://www.gnu.org/licenses/gpl-3.0.html>.
 # ==============================================================================
 #
 # Usage:
