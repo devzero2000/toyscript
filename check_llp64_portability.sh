@@ -5,7 +5,7 @@
 # Description   : Scans a C codebase (tuned for git/git) for LP64/LLP64 64-bit
 #                 portability issues (e.g. 'unsigned long' truncation to 32-bit
 #                 on Win64) and summarises 64-to-32 bit truncations.
-# Author        : Elia Pinto <dev@cyberactors.org>
+# Author        : Elia Pinto <elia.pinto@cyberactors.it>
 # License       : GNU General Public License v3.0 (GPL-3.0-or-later)
 # ==============================================================================
 #
