@@ -7,11 +7,28 @@
 #
 # Requires: git, autoconf (used only for --trace, nothing is generated).
 #
-# A symbol is reported when its only occurrences are:
-#   - its own "#undef SYM" line in a config-header template
-#   - configure / configure.ac / aclocal.m4 / build/*.m4 / ChangeLogs
+# A config-header symbol is reported when, in the C sources (*.c, *.h,
+# *.hin, *.cpp, *.y, *.l), its only occurrences are its own
+# "#undef SYM" lines in the config-header templates.  Generated autotools
+# files are ignored at any depth (configure, aclocal.m4), as are
+# build/*.m4, configure.ac and the ChangeLogs.
 # Symbols used only by test programs inside configure.ac are tagged,
 # since they may still steer configure logic.
+#
+# An AC_SUBST variable declared in configure.ac itself (not by autoconf
+# or libtool macros) is reported when no file contains @VAR@, or when it
+# is only substituted into a make variable ("VAR = @VAR@") that no file
+# uses as $(VAR), ${VAR} or $(VAR:...).
+#
+# Subdirectories with their own configure.ac (separate autotools
+# projects, e.g. contrib/ldapc++) are ignored.
+#
+# What this script cannot see (check by hand before removing a test):
+#  - configure reusing the cached result ($ac_cv_...) of a test;
+#  - side effects of a test: AC_CHECK_LIB adding -lfoo to LIBS,
+#    AC_REPLACE_FUNCS / AC_FUNC_MEMCMP adding objects to LIBOBJS, ...;
+#  - symbols built by the preprocessor (## concatenation);
+#  - code outside the repository using an installed header.
 
 set -eu
 
@@ -25,8 +42,17 @@ templates=$(autoconf --trace='AC_CONFIG_HEADERS:$1' configure.ac 2>/dev/null |
     done | sort -u)
 [ -n "$templates" ] || { echo "nessun AC_CONFIG_HEADERS trovato" >&2; exit 1; }
 
-gen=":(exclude)configure :(exclude)configure.ac :(exclude)aclocal.m4 \
-:(exclude)build/*.m4 :(exclude)*ChangeLog* :(exclude)CHANGES"
+# Generated or autoconf-only files, at any depth
+gen=":(exclude,glob)**/configure :(exclude)configure.ac \
+:(exclude,glob)**/aclocal.m4 :(exclude)build/*.m4 \
+:(exclude,glob)**/*ChangeLog* :(exclude)CHANGES"
+# Separate autotools projects in subdirectories
+for sub in $(git ls-files '*/configure.ac'); do
+    gen="$gen :(exclude)${sub%/configure.ac}"
+done
+# C sources: where a config-header symbol can be used
+csrc=":(glob)**/*.c :(glob)**/*.h :(glob)**/*.hin :(glob)**/*.cpp \
+:(glob)**/*.y :(glob)**/*.l"
 
 echo "Template analizzati: $(echo "$templates" | tr '\n' ' ')"
 echo
@@ -34,9 +60,9 @@ echo "== Simboli del config header mai usati =="
 # shellcheck disable=SC2086
 sed -n 's/^#[[:space:]]*undef[[:space:]]\{1,\}\([A-Za-z_][A-Za-z0-9_]*\).*/\1/p' \
     $templates | sort -u | while read -r sym; do
-    # Every occurrence outside generated/autoconf files...
+    # Every occurrence in the C sources...
     # shellcheck disable=SC2086
-    hits=$(git grep -h -w -e "$sym" -- . $gen || true)
+    hits=$(git grep -h -w -e "$sym" -- $csrc $gen || true)
     # ...minus the bare "#undef SYM" lines in templates.
     real=$(printf '%s\n' "$hits" |
         grep -v -E "^#[[:space:]]*undef[[:space:]]+$sym([[:space:]]|\$)" |
@@ -52,9 +78,24 @@ sed -n 's/^#[[:space:]]*undef[[:space:]]\{1,\}\([A-Za-z_][A-Za-z0-9_]*\).*/\1/p'
 done
 
 echo
-echo "== Variabili AC_SUBST mai usate come @VAR@ =="
+echo "== Variabili AC_SUBST mai usate =="
 autoconf --trace='AC_SUBST:$1' configure.ac 2>/dev/null | sort -u |
 while read -r var; do
+    # only the variables configure.ac declares itself
+    grep -q -E "AC_SUBST\(\[?${var}\]?[,)]" configure.ac || continue
     # shellcheck disable=SC2086
-    git grep -q -F -e "@${var}@" -- . $gen || echo "$var"
+    if ! git grep -q -F -e "@${var}@" -- . $gen; then
+        echo "$var"
+        continue
+    fi
+    # Substituted only as "VAR = @VAR@": is the make variable used?
+    # shellcheck disable=SC2086
+    other=$(git grep -h -F -e "@${var}@" -- . $gen |
+        grep -v -E "^[[:space:]]*${var}[[:space:]]*=[[:space:]]*@${var}@[[:space:]]*\$" |
+        grep -c . || true)
+    if [ "$other" -eq 0 ]; then
+        # shellcheck disable=SC2086
+        git grep -q -E -e "\\\$[({]${var}[):}]" -- . $gen ||
+            echo "$var  [sostituita in VAR = @VAR@, ma \$(${var}) mai usata]"
+    fi
 done
