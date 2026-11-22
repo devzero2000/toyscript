@@ -35,6 +35,11 @@ set -eu
 srcdir=${1:?usage: $0 <srcdir>}
 cd "$srcdir"
 
+# autoconf --trace leaves an autom4te.cache behind: remove it if we made it
+if [ ! -e autom4te.cache ]; then
+    trap 'rm -rf autom4te.cache' EXIT
+fi
+
 # Config-header templates declared in configure.ac (e.g. include/portable.h).
 templates=$(autoconf --trace='AC_CONFIG_HEADERS:$1' configure.ac 2>/dev/null |
     tr ' ' '\n' | sed 's/:.*//; /^$/d' | while read -r h; do
